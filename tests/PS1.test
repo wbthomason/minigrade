@@ -1,7 +1,7 @@
 build {'name': 'Makefile compilation', 'cmd': 'make; echo Files:; find . -maxdepth 1 -perm -111 -type f', 'results': '[\S\s\n]+Files:\n\./greete\n\./echo\n\./average\n?'}
-test {'name': 'greete.rs run', 'files': 'greete',  'cmd': './greete', 'results': '[\S\s]+'}
-test {'name': 'echo.rs one argument', 'files': 'echo', 'cmd': './echo cs4414', 'results': 'cs4414'}
-test {'name': 'echo.rs several arguments', 'files': 'echo', 'cmd': './echo cs4414 spring14 rust-class', 'results': 'cs4414 spring14 rust-class'}
-test {'name': 'echo.rs no arguments', 'files': 'echo', 'cmd': './echo', 'results': ''} 
-test {'name': 'average.rs normal arguments', 'files': 'average', 'cmd': './average 96 24 441', 'results': 'Average: 187'}
-test {'name': 'average.rs bad arguments',  'files': 'average', 'cmd': './average forty 494 2 16 292', 'results': 'Bad input: forty\nAverage: 201'}
+test {'name': 'greete.rs: Run', 'files': 'greete',  'cmd': './greete', 'results': '[\S\s]+'}
+test {'name': 'echo.rs: One argument', 'files': 'echo', 'cmd': './echo cs4414', 'results': 'cs4414'}
+test {'name': 'echo.rs: Several arguments', 'files': 'echo', 'cmd': './echo cs4414 spring14 rust-class', 'results': 'cs4414 spring14 rust-class'}
+test {'name': 'echo.rs: No arguments', 'files': 'echo', 'cmd': './echo', 'results': ''} 
+test {'name': 'average.rs: Normal arguments', 'files': 'average', 'cmd': './average 96 24 441', 'results': 'Average: 187'}
+test {'name': 'average.rs: Bad arguments',  'files': 'average', 'cmd': './average forty 494 2 16 292', 'results': 'Bad input: forty\nAverage: 201'}
