@@ -9,7 +9,7 @@ function changeBar(done, total) {
 }
 
 function grade(assignment, repo) {
-    var elems = '<h2> Grading ' + assignment.toString() + ' from ' + repo.toString() +' </h2>\n' + 
+    var elems = '<h2 id="subj"> Grading ' + assignment.toString() + ' from ' + repo.toString() +' </h2>\n' + 
     '<h3 id="pbar"> Progress: </h3>\n' + '<div id="progress">\n' + '<div id="progressbar"><span id="progamt">0%</span></div>\n' +
     '</div>\n' + '<h3> Raw output: </h3>\n' + '<pre> <code id="routc"></code></pre>\n' +
     '<h3> Test Results: </h3>\n' + '<table id="tresults" style="width:100%">\n' +
@@ -52,8 +52,13 @@ function grade(assignment, repo) {
          else if (chunks[0] == 'raw:') {
             $("#routc").append(chunks.slice(1).join(" ") + "\n");
          }
+         else if (event.data == 'inv') {
+            $("#subj").text("Error: No valid test file exists!");
+            source.close();
+         }
          else {
             alert("I don't know what this is: " + event.data);
+
          } 
     };
     $(window).bind("beforeunload", function() { source.close(); });

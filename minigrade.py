@@ -8,7 +8,7 @@ def grade_stream(assignment):
     build = None
     tests = []
     try:
-        with open("tests/PS1.test".format(assignment)) as testfile:
+        with open("tests/{}.test".format(assignment)) as testfile:
             for idnum, testcase in enumerate(testfile):
                 test = literal_eval(' '.join(testcase.split(' ')[1:]))
                 if testcase.split(' ')[0] == "build":
@@ -17,16 +17,10 @@ def grade_stream(assignment):
                     tests.append(test)
 
                 yield "data: tn: {} {}\n\n".format(test['name'], idnum)
-        
-        yield "data: tr: Pass 0\n\n"
-        yield "data: tr: Fail 3\n\n"
-        yield "data: raw: Raw Output\n\
-data: on multiple lines!! \n\n"
         yield "data: done\n\n"
     except:
         print "No test file for '{}'".format(assignment)
-        yield "data: No valid test file exists.\n\n"
-        yield "data: done\n\n"
+        yield "data: inv\n\n"
 
 @minigrade.route('/')
 def index():
@@ -38,5 +32,6 @@ def grade():
     assignment = request.args.get("assign", "NoneSuch")
     return Response(grade_stream(assignment), mimetype="text/event-stream")
 
+#Only run in chroot jail.
 if __name__ == '__main__':
     minigrade.run(debug=True, threaded=True, port=80)
