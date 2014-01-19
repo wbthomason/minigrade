@@ -1,0 +1,22 @@
+#progress {
+  background-color: black;
+  border-radius: 13px;
+  padding: 3px;
+  position: relative;
+}
+
+#progressbar span {
+    display: inline-block;
+    position: absolute;
+    width: 100%;
+    left:0;
+    color: white;
+}
+
+#progressbar {
+   background-color: green;
+   width: 0%;
+   height: 20px;
+   border-radius: 10px;
+   text-align: center;
+}
