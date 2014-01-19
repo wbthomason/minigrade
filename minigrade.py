@@ -1,11 +1,29 @@
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, Response
+from ast import literal_eval
+
 minigrade = Flask(__name__)
+
+def grade_stream(assignment):
+    try:
+        with open("tests/PS1.test".format(assignment)) as testfile:
+            for idnum, testcase in enumerate(testfile):
+                test = literal_eval(' '.join(testcase.split(' ')[1:]))
+                yield "data: tn: {} {}\n\n".format(test['name'], idnum)
+            yield "data: done\n\n"
+    except:
+        print "No test file for '{}'".format(assignment)
+        yield "data: No valid test file exists.\n\n"
+        yield "data: done\n\n"
 
 @minigrade.route('/')
 def index():
     with open("grade.html") as sub_page:
         return '\n'.join(sub_page.readlines())
 
+@minigrade.route('/grade/')
+def grade():
+    assignment = request.args.get("assign", "NoneSuch")
+    return Response(grade_stream(assignment), mimetype="text/event-stream")
 
 if __name__ == '__main__':
-    minigrade.run(debug=True)
+    minigrade.run(debug=True, threaded=True, port=80)

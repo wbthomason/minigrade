@@ -10,6 +10,7 @@
     <link href='http://fonts.googleapis.com/css?family=Open+Sans:400italic,400,700' rel='stylesheet' type='text/css'>
     <link rel="stylesheet" href="http://rust-class.org/theme/css/bootstrap.min.css" type="text/css" />
     <link href="static/css/style.css" rel="stylesheet" type="text/css">
+    <script type="text/javascript" src="static/js/grade.js"></script>
     <style type="text/css">
     body {
         padding-top: 60px;
@@ -43,25 +44,7 @@
     <link rel="apple-touch-icon" sizes="72x72" href="http://rust-class.org/theme/images/apple-touch-icon-72x72.png">
     <link rel="apple-touch-icon" sizes="114x114" href="http://rust-class.org/theme/images/apple-touch-icon-114x114.png">
     <link href="http://rust-class.org/feeds/all.atom.xml" type="application/atom+xml" rel="alternate" title="cs4414: Operating Systems ATOM Feed" />
-    <script type="text/javascript">
-    function changeBar(done, total) {
-        var width = ((done/total)*100).toString() + "%";
-        $("#progressbar").width(width);
-        $("#progamt").text(width);
-    }
 
-    function grade(assignment, repo) {
-        var elems = '<h2> Grading ' + assignment.toString() + ' from ' + repo.toString() +' </h2>\n' + 
-            '<h3 id="pbar"> Progress: </h3>\n' + '<div id="progress">\n' + '<div id="progressbar"><span id="progamt">0%</span></div>\n' +
-            '</div>\n' + '<input type="button" onclick="changeBar(45, 278)" value="More progress!"/>\n' +
-            '<h3> Raw output: </h3>\n' + '<pre id="rout"> <code id="routc"></code></pre>\n' +
-            '<h3> Test Results: </h3>\n' + '<table id="tresults" style="width:100%">\n' +
-            '<tr style="text-align:center">\n' + '<td><h4>Test:</h4></td>\n' + '<td><h4>Result:</h4></td>\n' +
-            '</tr>\n' + '</table>\n';
-        $("#grade-results").append(elems);
-    }
-
-    </script>
 </head>
 <body>
     <div class="navbar navbar-fixed-top">
@@ -105,12 +88,12 @@
               <a href="http://www.cs.virginia.edu">University of Virginia Computer Science</a><br>
               <a href="http://www.rust-class.org/">cs4414: Operating Systems</a>, Fall 2013<br>      
               <p align="right"><font color="grey" size="-2"> Site built using <a href="http://pelican.notmyidea.org/">Pelican</a>.  Theme uses <a href="http://twitter.github.com/bootstrap/">Bootstrap</a>,
-                 and <a href="http://fortawesome.github.com/Font-Awesome/">Font-Awesome</a>.</p>
-             </address><!-- /#about -->
-         </div>
-     </footer>
- </div><!--/.fluid-container-->
- <script src="http://rust-class.org/theme/js/jquery-1.7.2.min.js"></script>
- <script src="http://rust-class.org/theme/js/bootstrap.min.js"></script>
+               and <a href="http://fortawesome.github.com/Font-Awesome/">Font-Awesome</a>.</p>
+           </address><!-- /#about -->
+       </div>
+   </footer>
+</div><!--/.fluid-container-->
+<script src="http://rust-class.org/theme/js/jquery-1.7.2.min.js"></script>
+<script src="http://rust-class.org/theme/js/bootstrap.min.js"></script>
 </body>
 </html>
