@@ -3,12 +3,14 @@ var successes = 0;
 var failures = 0;
 
 function changeBar(done, total) {
-    var width = ((done/total)*100).toString() + "%";
+    var width = ((done/total)*100);
+    width = (width < 100) ? width.toString() + "%" : "100%";
     $("#progressbar").width(width);
     $("#progamt").text(width);
 }
 
 function grade(assignment, repo) {
+    $("#grade-results").empty()
     var elems = '<h2 id="subj"> Grading ' + assignment.toString() + ' from ' + repo.toString() +' </h2>\n' + 
     '<h3 id="pbar"> Progress: </h3>\n' + '<div id="progress">\n' + '<div id="progressbar"><span id="progamt">0%</span></div>\n' +
     '</div>\n' + '<h3> Raw output: </h3>\n' + '<pre> <code id="routc"></code></pre>\n' +
@@ -17,8 +19,9 @@ function grade(assignment, repo) {
     '</tr>\n' + '</table>\n';
     $("#grade-results").append(elems);
     var source = new EventSource('/grade/?assign='+assignment+'&repo='+repo);
-    var namepat = /tn: ([\S\s]+) ([\d]+)/;
-    var respat  = /tr: (Pass|Fail) ([\d]+)/;
+    var nampat = /tn: ([\S\s]+) ([\d]+)/;
+    var respat = /tr: (Pass|Fail) ([\d]+)/;
+    var invpat = /inv: ([\S\s]+)/
     source.onmessage = function(event) { 
         var chunks = event.data.split(" ");
         if (chunks[0] == 'done') { 
@@ -27,7 +30,7 @@ function grade(assignment, repo) {
             changeBar(successes, tests);
         } 
         else if (chunks[0] == 'tn:') { 
-            var name = event.data.match(namepat);
+            var name = event.data.match(nampat);
             if (name != null) {
                 $("#tresults").append('<tr style="text-align: center" id="'+assignment+'-test-'+name[2]+'"><td>'+name[1]+'</td><td>Not yet run</td></tr>\n');
                 tests += 1;
@@ -52,8 +55,11 @@ function grade(assignment, repo) {
          else if (chunks[0] == 'raw:') {
             $("#routc").append(chunks.slice(1).join(" ") + "\n");
          }
-         else if (event.data == 'inv') {
-            $("#subj").text("Error: No valid test file exists!");
+         else if (chunks[0] == 'inv:') {
+            var err = event.data.match(invpat);
+            if (err != null) {
+                $("#subj").text(err[1]);
+            }
             source.close();
          }
          else {
@@ -61,5 +67,5 @@ function grade(assignment, repo) {
 
          } 
     };
-    $(window).bind("beforeunload", function() { source.close(); });
+    //$(window).bind("beforeunload", function() { source.close(); });
 }

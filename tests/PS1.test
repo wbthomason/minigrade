@@ -1,4 +1,4 @@
-build {'name': 'Makefile compilation', 'cmd': 'make; echo Files:; find . -maxdepth 1 -perm -111 -type f', 'results': '[\S\s\n]+Files:\n\./greete\n\./echo\n\./average\n?'}
+build {'name': 'Makefile compilation', 'cmd': 'make; find . -maxdepth 1 -perm -111 -type f', 'results': '\./greete\n\./echo\n\./average\n?'}
 test {'name': 'greete.rs: Run', 'files': 'greete',  'cmd': './greete', 'results': '[\S\s]+'}
 test {'name': 'echo.rs: One argument', 'files': 'echo', 'cmd': './echo cs4414', 'results': 'cs4414'}
 test {'name': 'echo.rs: Several arguments', 'files': 'echo', 'cmd': './echo cs4414 spring14 rust-class', 'results': 'cs4414 spring14 rust-class'}
