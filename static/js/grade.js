@@ -2,6 +2,48 @@ var tests = 0;
 var successes = 0;
 var failures = 0;
 
+var persona_in = document.getElementById('persona_in');
+if (persona_in) {
+  persona_in.onclick = function() { navigator.id.request(); };
+}
+
+navigator.id.watch({
+  loggedInUser: null,
+  onlogin: function(assertion) {
+    // A user has logged in! Here you need to:
+    // 1. Send the assertion to your backend for verification and to create a session.
+    // 2. Update your UI.
+    /*$.ajax({ 
+      type: 'POST',
+      url: '/auth/login', // This is a URL on your website.
+      data: {assertion: assertion},
+      success: function(res, status, xhr) { window.location.reload(); },
+      error: function(xhr, status, err) {
+        navigator.id.logout();
+        alert("Login failure: " + err);
+      }
+    });*/
+    $("#persona_in").click(function() { navigator.id.logout(); });
+    $("#persona_in").val("Log out");
+    alert("gotems");
+  },
+  onlogout: function() {
+    // A user has logged out! Here you need to:
+    // Tear down the user's session by redirecting the user or making a call to your backend.
+    // Also, make sure loggedInUser will get set to null on the next page load.
+    // (That's a literal JavaScript null. Not false, 0, or undefined. null.)
+    /*$.ajax({
+      type: 'POST',
+      url: '/auth/logout', // This is a URL on your website.
+      success: function(res, status, xhr) { window.location.reload(); },
+      error: function(xhr, status, err) { alert("Logout failure: " + err); }
+    });*/
+    $("#persona_in").click(function() { navigator.id.request(); });
+    $("#persona_in").val("Log in");
+    alert("gasdas");
+  }
+});
+
 function changeBar(done, total) {
     var width = ((done/total)*100);
     width = (width < 100) ? width.toString() + "%" : "100%";
@@ -10,7 +52,10 @@ function changeBar(done, total) {
 }
 
 function grade(assignment, repo) {
-    $("#grade-results").empty()
+    $("#grade-results").empty();
+    tests = 0;
+    successes = 0;
+    failures = 0;
     var elems = '<h2 id="subj"> Grading ' + assignment.toString() + ' from ' + repo.toString() +' </h2>\n' + 
     '<h3 id="pbar"> Progress: </h3>\n' + '<div id="progress">\n' + '<div id="progressbar"><span id="progamt">0%</span></div>\n' +
     '</div>\n' + '<h3> Raw output: </h3>\n' + '<pre> <code id="routc"></code></pre>\n' +

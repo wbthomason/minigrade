@@ -5,6 +5,17 @@ import re
 
 minigrade = Flask(__name__)    
 
+def process_repo(repo):
+    if len(repo) < 8:
+        return ("BadRepo", "NoName")
+    urlstart = 6 if repo[:3] == "git" else 8
+    try:
+        name = repo[urlstart:].split('/')[2].split('.')[0]
+    except IndexError:
+        return ("BadRepoUrlGiven", "NoName")
+    giturl = "git://" + repo[urlstart:]
+    return (giturl, name)
+
 def grade_stream(assignment, repo):
     build = None
     tests = []
@@ -21,29 +32,37 @@ def grade_stream(assignment, repo):
     except:
         print "No test file for '{}'".format(assignment)
         yield "data: inv: Error: No valid test file for {}\n\n".format(assignment)
-    #git = subprocess.check_output("git clone {}".format(repo).split(" "), stderr = subprocess.STDOUT)
-    #if git.split(" ")[0] == "fatal:":
-    #    print "{} is not a valid repository".format(repo)
-    #    yield "data: inv: Error: {} is not a valid repository\n\n".format(repo)
+        raise StopIteration
+    git_repo, repo_name = process_repo(repo)
+    try:
+        git = subprocess.check_output("git clone {}".format(git_repo).split(" "), stderr = subprocess.STDOUT)
+        yield "data: raw: {}\n\n".format(git)
+    except:
+        yield "data: inv: Error: {} is not a valid repository\n\n".format(repo)
+        raise StopIteration
     if build:
         success = re.compile(build['results'])
         commands = build['cmd'].split(";")
         for command in commands:
+            yield "data: raw: {}\n\n".format(command)
             result = None
             try:
                 result = subprocess.check_output(command, shell = True, stderr = subprocess.STDOUT)
             except:
                 print "Error building"
+
             if result:
                 for line in result.split('\n'):
                     yield "data: raw: {}\n\n".format(line)
             else: 
                 yield "data: raw: Error running {}\n\n".format(command)
+
         if result and re.search(success, result):
             yield "data: tr: Pass 0\n\n"
         else:
             yield "data: tr: Fail 0\n\n"
             yield "data: inv: Build failed!\n\n"
+            raise StopIteration
 
     for idnum, test in enumerate(tests):
         success = re.compile(test['results'])
@@ -54,11 +73,13 @@ def grade_stream(assignment, repo):
                 result = subprocess.check_output(command, shell = True, stderr = subprocess.STDOUT)
             except:
                 print "Error running test: {}".format(test['name'])
+
             if result:
                 for line in result.split('\n'):
                     yield "data: raw: {}\n\n".format(line)
             else: 
                 yield "data: raw: Error running {}\n\n".format(command)
+
         if result and re.search(success, result):
             yield "data: tr: Pass {}\n\n".format(idnum + 1)
         else:
