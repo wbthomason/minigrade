@@ -7,25 +7,28 @@ if (persona_in) {
   persona_in.onclick = function() { navigator.id.request(); };
 }
 
+var current_user = "pj7xc@virginia.edu";
 navigator.id.watch({
-  loggedInUser: null,
+  loggedInUser: current_user,
   onlogin: function(assertion) {
     // A user has logged in! Here you need to:
     // 1. Send the assertion to your backend for verification and to create a session.
     // 2. Update your UI.
-    /*$.ajax({ 
+    $.ajax({ 
       type: 'POST',
       url: '/auth/login', // This is a URL on your website.
       data: {assertion: assertion},
-      success: function(res, status, xhr) { window.location.reload(); },
+      success: function(res, status, xhr) {     
+	  alert("gotems");
+	  window.location.reload(); 
+      },
       error: function(xhr, status, err) {
         navigator.id.logout();
         alert("Login failure: " + err);
       }
-    });*/
+    });
     $("#persona_in").click(function() { navigator.id.logout(); });
     $("#persona_in").val("Log out");
-    alert("gotems");
   },
   onlogout: function() {
     // A user has logged out! Here you need to:

@@ -1,7 +1,9 @@
-from flask import Flask, render_template, request, jsonify, Response
+from flask import Flask, render_template, request, jsonify, Response, abort, session
 from ast import literal_eval
 import subprocess
 import re
+import requests
+import json
 
 minigrade = Flask(__name__)    
 
@@ -98,6 +100,34 @@ def grade():
     repo = request.args.get("repo", "NoneSuch")
     return Response(grade_stream(assignment, repo), mimetype="text/event-stream")
 
+@minigrade.route('/auth/login', methods=['POST'])
+def login():
+    # The request has to have an assertion for us to verify
+    if 'assertion' not in request.form:
+        abort(400)
+
+    # Send the assertion to Mozilla's verifier service.
+    data = {'assertion': request.form['assertion'], 'audience': 'http://localhost:9080'}
+    resp = requests.post('https://verifier.login.persona.org/verify', data=data, verify=True)
+
+    # Did the verifier respond?
+    if resp.ok:
+        # Parse the response
+        verification_data = json.loads(resp.content)
+
+        # Check if the assertion was valid
+        if verification_data['status'] == 'okay':
+            # Log the user in by setting a secure session cookie
+            session.update({'email': verification_data['email']})
+            return 'You are logged in'
+
+    # Oops, something failed. Abort.
+    abort(500)
+    
+    
 #Only run in chroot jail.
 if __name__ == '__main__':
     minigrade.run(debug=True, threaded=True, port=9080)
+
+#Secret key for flask sessions
+minigrade.secret_key = '\x1aqt\x98\x0c\x02}\xd4\x9d\xc9!\xca\x8b\xd1\x8d\x11\xef\x00\xf3\xe2\\\xb3\xb9%'
