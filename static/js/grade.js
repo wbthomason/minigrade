@@ -18,8 +18,7 @@ navigator.id.watch({
       type: 'POST',
       url: '/auth/login', // This is a URL on your website.
       data: {assertion: assertion},
-      success: function(res, status, xhr) {     
-	  alert("gotems");
+      success: function(res, status, xhr) {
 	  window.location.reload(); 
       },
       error: function(xhr, status, err) {
@@ -43,7 +42,7 @@ navigator.id.watch({
     });*/
     $("#persona_in").click(function() { navigator.id.request(); });
     $("#persona_in").val("Log in");
-    alert("gasdas");
+
   }
 });
 
