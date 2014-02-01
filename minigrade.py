@@ -1,26 +1,36 @@
-from flask import Flask, render_template, request, jsonify, Response, abort, session
+from flask import Flask, render_template, request, jsonify, Response, abort, session, stream_with_context, redirect
 from ast import literal_eval
 import subprocess
 import re
 import requests
 import json
+import shutil
+import time
+import os
 
 minigrade = Flask(__name__)    
+# Put your own secret key here. You can't have mine!
+minigrade.secret_key = '!\xec\xa8\x88\xc9R\xf7i<wW\x9fzH\x81\xff\x11~aQn\x9f\xcf\x0b'
+urlmatch = re.compile('(?:git@|git://|https://)(?P<url>[\w@-]+\.[a-zA-Z]+[:/](?P<user>[a-zA-Z][a-zA-Z0-9-]+)/(?P<repo>.+))')
 
 def process_repo(repo):
-    if len(repo) < 8:
-        return ("BadRepo", "NoName")
-    urlstart = 6 if repo[:3] == "git" else 8
-    try:
-        name = repo[urlstart:].split('/')[2].split('.')[0]
-    except IndexError:
-        return ("BadRepoUrlGiven", "NoName")
-    giturl = "git://" + repo[urlstart:]
-    return (giturl, name)
+    result = urlmatch.match(repo)
+    if not result:
+        return None
+
+    giturl = "git://" + result.group('url')
+    repository = result.group('repo')
+    if repository[-4:] == ".git":
+        repository = repository[:-4]
+    return (giturl, repository, result.group('user'))
 
 def grade_stream(assignment, repo):
+    if 'email' not in session:
+        yield "data: inv: Please log in before running the autograder.\n\n"
+        raise StopIteration
     build = None
     tests = []
+    
     try:
         with open("tests/{}.test".format(assignment)) as testfile:
             for idnum, testcase in enumerate(testfile):
@@ -35,58 +45,87 @@ def grade_stream(assignment, repo):
         print "No test file for '{}'".format(assignment)
         yield "data: inv: Error: No valid test file for {}\n\n".format(assignment)
         raise StopIteration
-    git_repo, repo_name = process_repo(repo)
     try:
-        git = subprocess.check_output("git clone {}".format(git_repo).split(" "), stderr = subprocess.STDOUT)
-        yield "data: raw: {}\n\n".format(git)
-    except:
-        yield "data: inv: Error: {} is not a valid repository\n\n".format(repo)
-        raise StopIteration
-    if build:
-        success = re.compile(build['results'])
-        commands = build['cmd'].split(";")
-        for command in commands:
-            yield "data: raw: {}\n\n".format(command)
-            result = None
+        os.chdir("results/{}".format(assignment))
+        if not os.path.isdir(session['email']):
+            os.mkdir(session['email'])
+        os.chdir(session['email'])
+        with open(str(time.time())+".result", 'w') as results:
+            result = process_repo(repo)
+            if not result:
+                results.write("{} is not a valid git repository.\n".format(repo))
+                yield "data: inv: {} is not a valid git repository.\n\n".format(repo)
+                raise StopIteration
+
+            repo_url, repo_name, repo_user = result
             try:
-                result = subprocess.check_output(command, shell = True, stderr = subprocess.STDOUT)
+                git = subprocess.check_output("git clone {}".format(repo_url).split(" "), stderr = subprocess.STDOUT)
+                yield "data: raw: {}\n\n".format(git)
             except:
-                print "Error building"
+                results.write("{} is not a valid git repository.\n".format(repo))
+                yield "data: inv: Error: {} is not a valid repository\n\n".format(repo)
+                raise StopIteration
+            results.write("Using repository {}.\n".format(repo))
+            if build:
+                success = re.compile(build['results'])
+                commands = build['cmd'].split(";")
+                for command in commands:
+                    yield "data: raw: {}\n\n".format(command)
+                    result = None
+                    try:
+                        result = subprocess.check_output(command, shell = True, stderr = subprocess.STDOUT)
+                    except:
+                        print "Error building"
 
-            if result:
-                for line in result.split('\n'):
-                    yield "data: raw: {}\n\n".format(line)
-            else: 
-                yield "data: raw: Error running {}\n\n".format(command)
+                    if result:
+                        for line in result.split('\n'):
+                            yield "data: raw: {}\n\n".format(line)
+                    else: 
+                        yield "data: raw: Error running {}\n\n".format(command)
 
-        if result and re.search(success, result):
-            yield "data: tr: Pass 0\n\n"
-        else:
-            yield "data: tr: Fail 0\n\n"
-            yield "data: inv: Build failed!\n\n"
-            raise StopIteration
+                if result and re.search(success, result):
+                    results.write("Build success\n")
+                    yield "data: tr: Pass 0\n\n"
+                else:
+                    results.write("Build failed\n")
+                    yield "data: tr: Fail 0\n\n"
+                    yield "data: inv: Build failed!\n\n"
+                    raise StopIteration
+            passed = 0
+            failed = 0
+            for idnum, test in enumerate(tests):
+                success = re.compile(test['results'])
+                result = None
+                for command in test['cmd'].split(";"):
+                    yield "data: raw: {}\n\n".format(command)
+                    try:
+                        result = subprocess.check_output(command, shell = True, stderr = subprocess.STDOUT)
+                    except:
+                        print "Error running test: {}".format(test['name'])
+                        results.write("Error running test {}\n".format(test['name']))
 
-    for idnum, test in enumerate(tests):
-        success = re.compile(test['results'])
-        result = None
-        for command in test['cmd'].split(";"):
-            yield "data: raw: {}\n\n".format(command)
-            try:
-                result = subprocess.check_output(command, shell = True, stderr = subprocess.STDOUT)
-            except:
-                print "Error running test: {}".format(test['name'])
+                    if result:
+                        for line in result.split('\n'):
+                            yield "data: raw: {}\n\n".format(line)
+                    else: 
+                        results.write("Error running test {}\n".format(command))
+                        yield "data: raw: Error running {}\n\n".format(command)
 
-            if result:
-                for line in result.split('\n'):
-                    yield "data: raw: {}\n\n".format(line)
-            else: 
-                yield "data: raw: Error running {}\n\n".format(command)
+                if result and re.search(success, result):
+                    results.write("Passed {}\n".format(test['name']))
+                    passed += 1
+                    yield "data: tr: Pass {}\n\n".format(idnum + 1)
+                else:
+                    results.write("Failed {}\n".format(test['name']))
+                    failed += 1
+                    yield "data: tr: Fail {}\n\n".format(idnum + 1)
 
-        if result and re.search(success, result):
-            yield "data: tr: Pass {}\n\n".format(idnum + 1)
-        else:
-            yield "data: tr: Fail {}\n\n".format(idnum + 1)
-
+            results.write("Total pass: {}\n".format(passed))
+            results.write("Total fail: {}\n".format(failed))
+    finally:
+        shutil.rmtree(repo_name)
+        os.chdir('../../..')
+        
     yield "data: done\n\n"
 
 @minigrade.route('/')
@@ -98,10 +137,12 @@ def index():
 def grade():
     assignment = request.args.get("assign", "NoneSuch")
     repo = request.args.get("repo", "NoneSuch")
-    return Response(grade_stream(assignment, repo), mimetype="text/event-stream")
+    return Response(stream_with_context(grade_stream(assignment, repo)), mimetype="text/event-stream")
 
-@minigrade.route('/auth/login', methods=['POST'])
+@minigrade.route('/auth/login', methods=['POST', 'GET'])
 def login():
+    if request.method == "GET":
+        return session['email'] if 'email' in session else "null"
     # The request has to have an assertion for us to verify
     if 'assertion' not in request.form:
         abort(400)
@@ -119,15 +160,17 @@ def login():
         if verification_data['status'] == 'okay':
             # Log the user in by setting a secure session cookie
             session.update({'email': verification_data['email']})
-            return 'You are logged in'
+            return "Logged in as %s" % verification_data['email']
 
     # Oops, something failed. Abort.
     abort(500)
     
+@minigrade.route('/auth/logout', methods=['POST'])
+def logout():
+    session.pop('email', None)
+    return redirect('/')
     
 #Only run in chroot jail.
 if __name__ == '__main__':
+    #minigrade.run(host='0.0.0.0', debug=False, threaded=True, port=9080)
     minigrade.run(debug=True, threaded=True, port=9080)
-
-#Secret key for flask sessions
-minigrade.secret_key = '\x1aqt\x98\x0c\x02}\xd4\x9d\xc9!\xca\x8b\xd1\x8d\x11\xef\x00\xf3\xe2\\\xb3\xb9%'

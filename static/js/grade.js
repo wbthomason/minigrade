@@ -6,43 +6,49 @@ var persona_in = document.getElementById('persona_in');
 if (persona_in) {
   persona_in.onclick = function() { navigator.id.request(); };
 }
+var currentUser = null;
 
-var current_user = "pj7xc@virginia.edu";
+$.ajax({
+  type: 'GET',
+  url: '/auth/login',
+  async: false,
+  success: function(res, status, xhr) {
+    currentUser = res;
+  },
+  error: function(xhr, status, err) {
+    alert("Could not reach server!");
+  }
+});
+
 navigator.id.watch({
-  loggedInUser: current_user,
+  loggedInUser: currentUser,
   onlogin: function(assertion) {
-    // A user has logged in! Here you need to:
-    // 1. Send the assertion to your backend for verification and to create a session.
-    // 2. Update your UI.
     $.ajax({ 
       type: 'POST',
       url: '/auth/login', // This is a URL on your website.
       data: {assertion: assertion},
       success: function(res, status, xhr) {
-	  window.location.reload(); 
+        $("#persona_in").click(function() { navigator.id.logout(); });
+        $("#persona_in").val("Log out");
+        $("#persona_email").text(res);
       },
       error: function(xhr, status, err) {
         navigator.id.logout();
         alert("Login failure: " + err);
       }
     });
-    $("#persona_in").click(function() { navigator.id.logout(); });
-    $("#persona_in").val("Log out");
   },
   onlogout: function() {
-    // A user has logged out! Here you need to:
-    // Tear down the user's session by redirecting the user or making a call to your backend.
-    // Also, make sure loggedInUser will get set to null on the next page load.
-    // (That's a literal JavaScript null. Not false, 0, or undefined. null.)
-    /*$.ajax({
+    $.ajax({
       type: 'POST',
       url: '/auth/logout', // This is a URL on your website.
-      success: function(res, status, xhr) { window.location.reload(); },
+      success: function(res, status, xhr) { 
+          $("#persona_in").click(function() { navigator.id.request(); });
+          $("#persona_in").val("Log in");
+          $("#persona_email").text("Not logged in");
+        },
       error: function(xhr, status, err) { alert("Logout failure: " + err); }
-    });*/
-    $("#persona_in").click(function() { navigator.id.request(); });
-    $("#persona_in").val("Log in");
-
+    });
   }
 });
 
