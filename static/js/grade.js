@@ -64,6 +64,7 @@ function grade(assignment, repo) {
     tests = 0;
     successes = 0;
     failures = 0;
+    old_tests = 1;
     var elems = '<h2 id="subj"> Grading ' + assignment.toString() + ' from ' + repo.toString() +' </h2>\n' + 
     '<h3 id="pbar"> Progress: </h3>\n' + '<div id="progress">\n' + '<div id="progressbar"><span id="progamt">0%</span></div>\n' +
     '</div>\n' + '<h3> Raw output: </h3>\n' + '<pre> <code id="routc"></code></pre>\n' +
@@ -114,6 +115,13 @@ function grade(assignment, repo) {
                 $("#subj").text(err[1]);
             }
             source.close();
+         }
+         else if(chunks[0] == 'nextpast') {
+            $("#past-results").append('<h3> Previous Test: ' + old_tests + '</h3>\n');
+            old_tests += 1;
+         }
+         else if(chunks[0] == 'past:') {
+            $("#past-results").append('<p>' + chunks.slice(1).join(" ") + '</p>\n');
          }
          else {
             alert("I don't know what this is: " + event.data);

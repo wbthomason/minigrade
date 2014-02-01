@@ -24,6 +24,20 @@ def process_repo(repo):
         repository = repository[:-4]
     return (giturl, repository, result.group('user'))
 
+def sort_files_by_age(files):
+    filedata = [(filename, os.lstat(filename).st_ctime) for filename in files]
+    filedata = sorted(filedata, key = lambda x: x[1])
+    filedata = [filetuple[0] for filetuple in filedata]
+    return filedata
+
+def cap_logs():
+    result_files = os.listdir('.')
+    if len(result_files) > 10:
+        filedata = sort_files_by_age(result_files)[:len(result_files) - 10]
+        for f in filedata:
+            os.remove(f)
+
+
 def grade_stream(assignment, repo):
     if 'email' not in session:
         yield "data: inv: Please log in before running the autograder.\n\n"
@@ -50,6 +64,15 @@ def grade_stream(assignment, repo):
         if not os.path.isdir(session['email']):
             os.mkdir(session['email'])
         os.chdir(session['email'])
+        cap_logs()
+        result_files  = sort_files_by_age(os.listdir('.'))
+        result_files.reverse()
+        for f in result_files:
+            yield "data: nextpast\n\n"
+            with open(f) as result:
+                for line in result:
+                    yield "data: past: {}\n\n".format(line)
+
         with open(str(time.time())+".result", 'w') as results:
             result = process_repo(repo)
             if not result:
@@ -125,7 +148,7 @@ def grade_stream(assignment, repo):
     finally:
         shutil.rmtree(repo_name)
         os.chdir('../../..')
-        
+
     yield "data: done\n\n"
 
 @minigrade.route('/')
