@@ -1,0 +1,3 @@
+build {'name': 'Makefile compilation', 'cmd': 'make; find . -maxdepth 1 -perm -111 -type f', 'results': './gash\n?'}
+test {'name': 'gash.rs: Run', 'files': 'gash',  'cmd': './gash', 'results': '[\S\s]+'}
+test {'name': ' < : input stream', 'files': 'gash', 'cmd': './gash | sort < abc.txt', 'results': '[\s]*a\nb\nc[\s]*' }
