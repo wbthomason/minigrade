@@ -85,9 +85,9 @@ def grade_stream(assignment, repo):
             try:
                 git = subprocess.check_output("git clone {}".format(repo_url).split(" "), stderr = subprocess.STDOUT)
                 yield "data: raw: {}\n\n".format(git)
-            except:
-                results.write("{} is not a valid git repository.\n".format(repo))
-                yield "data: inv: Error: {} is not a valid repository\n\n".format(repo)
+            except Exception as e:
+                results.write("{} is not a valid repository, because we got {}\n".format(repo,e))
+                yield "data: inv: Error: {} is not a valid repository, because we got {}\n\n".format(repo,e)
                 raise StopIteration
             results.write("Using repository {}.\n".format(repo))
             os.chdir(repo_name)
