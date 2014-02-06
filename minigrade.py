@@ -126,7 +126,20 @@ def grade_stream(assignment, repo):
                 for command in test['cmd'].split(";"):
                     yield "data: raw: {}\n\n".format(command)
                     try:
-                        result = subprocess.check_output(command, shell = True, stderr = subprocess.STDOUT)
+                        start = time.time()
+                        result = subprocess.Popen(command, shell = True, stderr = subprocess.STDOUT)
+                        time_limit = 1
+                        time_elapsed = 0.0
+                        return_code = 0
+                        while time_elapsed <= time_limit:
+                            if result.poll() != None:
+                                return_code = result.poll()
+                                break
+                            time.sleep(0.1)
+                            time_elapsed += 0.1
+
+                        if time_elapsed > time_limit:
+                            result.kill()
                     except:
                         print "Error running test: {}.".format(test['name'])
                         results.write("Error running test {}\n".format(test['name']))
