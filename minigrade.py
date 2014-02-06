@@ -44,7 +44,7 @@ def grade_stream(assignment, repo):
         raise StopIteration
     build = None
     tests = []
-    
+    repo_name = "NotADirectory"
     try:
         with open("tests/{}.test".format(assignment)) as testfile:
             for idnum, testcase in enumerate(testfile):
@@ -89,6 +89,7 @@ def grade_stream(assignment, repo):
                 yield "data: inv: Error: {} is not a valid repository\n\n".format(repo)
                 raise StopIteration
             results.write("Using repository {}.\n".format(repo))
+            os.chdir(repo_name)
             if build:
                 success = re.compile(build['results'])
                 commands = build['cmd'].split(";")
@@ -146,8 +147,9 @@ def grade_stream(assignment, repo):
             results.write("Total pass: {}\n".format(passed))
             results.write("Total fail: {}\n".format(failed))
     finally:
-        shutil.rmtree(repo_name)
-        os.chdir('../../..')
+        if os.path.isdir(repo_name):
+            shutil.rmtree(repo_name)
+        os.chdir('~/minigrade')
 
     yield "data: done\n\n"
 
