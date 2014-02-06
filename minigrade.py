@@ -82,6 +82,8 @@ def grade_stream(assignment, repo):
                 raise StopIteration
 
             repo_url, repo_name, repo_user = result
+            if os.path.isdir(repo_name):
+                shutil.rmtree(repo_name)
             try:
                 git = subprocess.check_output("git clone {}".format(repo_url).split(" "), stderr = subprocess.STDOUT)
                 yield "data: raw: {}\n\n".format(git)
@@ -125,8 +127,8 @@ def grade_stream(assignment, repo):
                     yield "data: raw: {}\n\n".format(command)
                     try:
                         result = subprocess.check_output(command, shell = True, stderr = subprocess.STDOUT)
-                    except Exception as e:
-                        print "Error running test: {}. Got {}".format(test['name'], e)
+                    except:
+                        print "Error running test: {}.".format(test['name'])
                         results.write("Error running test {}\n".format(test['name']))
 
                     if result:
