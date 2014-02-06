@@ -18,7 +18,7 @@ def process_repo(repo):
     if not result:
         return None
 
-    giturl = "git://" + result.group('url')
+    giturl = "https://" + result.group('url')
     repository = result.group('repo')
     if repository[-4:] == ".git":
         repository = repository[:-4]
@@ -28,6 +28,7 @@ def sort_files_by_age(files):
     filedata = [(filename, os.lstat(filename).st_ctime) for filename in files]
     filedata = sorted(filedata, key = lambda x: x[1])
     filedata = [filetuple[0] for filetuple in filedata]
+    filedata = filter(lambda x: not os.path.isdir(x), filedata)
     return filedata
 
 def cap_logs():
@@ -124,8 +125,8 @@ def grade_stream(assignment, repo):
                     yield "data: raw: {}\n\n".format(command)
                     try:
                         result = subprocess.check_output(command, shell = True, stderr = subprocess.STDOUT)
-                    except:
-                        print "Error running test: {}".format(test['name'])
+                    except Exception as e:
+                        print "Error running test: {}. Got {}".format(test['name'], e)
                         results.write("Error running test {}\n".format(test['name']))
 
                     if result:
@@ -149,7 +150,7 @@ def grade_stream(assignment, repo):
     finally:
         if os.path.isdir(repo_name):
             shutil.rmtree(repo_name)
-        os.chdir('~/minigrade')
+        os.chdir('/home/grader/minigrade')
 
     yield "data: done\n\n"
 
@@ -173,7 +174,7 @@ def login():
         abort(400)
 
     # Send the assertion to Mozilla's verifier service.
-    data = {'assertion': request.form['assertion'], 'audience': 'http://localhost:9080'}
+    data = {'assertion': request.form['assertion'], 'audience': 'http://128.143.136.170:9080'}
     resp = requests.post('https://verifier.login.persona.org/verify', data=data, verify=True)
 
     # Did the verifier respond?
