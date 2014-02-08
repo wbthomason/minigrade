@@ -1,3 +1,6 @@
 build {'name': 'Makefile compilation', 'cmd': 'make; find . -maxdepth 1 -perm -111 -type f', 'results': './gash\n?'}
 test {'name': 'gash.rs: Run', 'files': 'gash',  'cmd': './gash; pkill gash', 'results': '[\S\s]+'}
 test {'name': ' < : input stream', 'files': 'gash', 'cmd': 'sort < abc.txt', 'results': '[\s]*a\nb\nc[\s]*' }
+test {'name': ' > : output stream', 'files': 'gash', 'cmd': 'echo hello > hello.txt; pkill gash; cat hello.txt', 'results': 'hello\n?' }
+test {'name': ' | : pipes', 'files': gash', 'cmd': 'cat abc.txt | sort', 'results': '[\s]*a\nb\nc\n[\s]*'}
+
