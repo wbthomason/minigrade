@@ -1,6 +1,7 @@
 build {'name': 'Makefile compilation', 'cmd': 'make; find . -maxdepth 1 -perm -111 -type f', 'results': './gash\n?'}
-test {'dep' : '[]', 'name': 'gash.rs: Run', 'files': 'gash',  'cmd': 'pwd', 'results': '[\S\s]+'}
+test {'dep' : '[]', 'name': 'gash.rs: Run', 'files': 'gash',  'cmd': 'pwd', 'results': '/home/tester/repo'}
 test {'dep' : '[abc.txt]', 'name': 'input redirect', 'files': 'gash', 'cmd': 'sort < abc.txt', 'results': '[\s]*a\nb\nc[\s]*' }
 test {'dep' : '[]', 'name': 'output redirect', 'files': 'gash', 'cmd': 'echo hello > hello.txt; cat hello.txt', 'results': 'hello\n?' }
-test {'dep' : '[abc.txt]', 'name': 'pipes', 'files': 'gash', 'cmd': 'cat abc.txt | sort', 'results': '[\s]*a\nb\nc\n[\s]*'}
-test {'dep' : '[]', 'name': "What's the world's best language?", 'files': 'gash', 'cmd': 'echo Rust!', 'results': '[\s]*Rust![\s]*'}
+test {'dep' : '[abc.txt]', 'name': 'pipes', 'files': 'gash', 'cmd': 'cat abc.txt | sort', 'results': '[\s]*a\nb\nc[\s]*'}
+test {'dep' : '[]', 'name': "what's the world's best language?", 'files': 'gash', 'cmd': 'echo Rust!', 'results': '[\s]*Rust![\s]*'}
+test {'dep' : '[]', 'name': "sleeping beauty", 'files': 'gash', 'cmd': 'sleep 20', 'results': '[\s]*'}

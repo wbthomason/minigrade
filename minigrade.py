@@ -129,23 +129,25 @@ def grade_stream(assignment, repo):
 		temp=""
 		for token in test['cmd'].split(';'):
 			temp = temp + './gash -c "{}"\n'.format(token)
-		print "temp={}".format(temp.rstrip())
+		#print "temp={}".format(temp.rstrip())
 		f.write(temp.rstrip())
 		f.close()
 		cwd = os.getcwd()
-		print "cwd={}".format(cwd)
+		#print "cwd={}".format(cwd)
 		command = "/home/grader/minigrade/dockerscript.sh {} {} test_file{} output_file{}".format(cwd, cwd, counter, counter)
-		print "command={}".format(command)
-		result = subprocess.Popen(command, shell = True, stderr = subprocess.STDOUT)
+		#print "command={}".format(command)		
 		returncode = subprocess.call(command, shell = True, stderr = subprocess.STDOUT)
+		result =""
 		r = open('output_file{}'.format(counter), 'r')
-		result = ''.join(r.readlines())
+		result = ''.join(r.readlines()).rstrip()
 		r.close()
-		print "result={}".format(result)
-		print "done printing result"
+		#print "result from output_file{}={}".format(counter, result)
+		#print "done printing result"
 		print "{}: test {}".format(session['email'], counter)
-		yield "data: raw: {}\n\n".format(result)
-                if returncode and re.search(success, result):
+		#print "returncode={}".format(returncode)
+		for line in result.split('\n'):
+		    yield "data: raw: {}\n\n".format(line)
+                if (returncode == 0) and re.search(success, result):
                     results.write("Passed {}\n".format(test['name']))
                     passed += 1
                     yield "data: tr: Pass {}\n\n".format(idnum + 1)
@@ -206,5 +208,5 @@ def logout():
     
 #Only run in chroot jail.
 if __name__ == '__main__':
-    #minigrade.run(host='0.0.0.0', debug=False, threaded=True, port=9080)
-    minigrade.run(debug=True, threaded=True, port=9080)
+    minigrade.run(host='0.0.0.0', debug=False, threaded=True, port=9080)
+    #minigrade.run(debug=True, threaded=True, port=9080)

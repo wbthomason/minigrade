@@ -62,7 +62,7 @@ function changeBar(done, total) {
 function grade(assignment, repo) {
     $("#grade-results").empty();
     $("#past-results").empty();
-//    $("#starttest").attr('disabled','disabled'); //disabled = true;
+    $("#starttest").prop("disabled",true); //disabled = true;
     tests = 0;
     successes = 0;
     failures = 0;
@@ -82,7 +82,7 @@ function grade(assignment, repo) {
         var chunks = event.data.split(" ");
         if (chunks[0] == 'done') { 
             source.close();
-//	    $("#starttest").removeAttr('disabled') //.disabled = false; 
+	    $("#starttest").prop('disabled', false)
             $("#pbar").text("Overall Tests Passed:");
             changeBar(successes, tests);
         } 
@@ -118,7 +118,7 @@ function grade(assignment, repo) {
                 $("#subj").text(err[1]);
             }
             source.close();
-//	   $("#starttest").removeAttr('disabled'); //.disabled = false;
+	   $("#starttest").prop('disabled', false);
          }
          else if(chunks[0] == 'nextpast') {
             $("#past-results").append('<h3> Previous Test: ' + old_tests + '</h3>\n');
