@@ -129,18 +129,21 @@ def grade_stream(assignment, repo):
 		temp=""
 		for token in test['cmd'].split(';'):
 			temp = temp + './gash -c "{}"\n'.format(token)
+		print "temp={}".format(temp.rstrip())
 		f.write(temp.rstrip())
 		f.close()
 		cwd = os.getcwd()
-		#print "cwd={}".format(cwd)
+		print "cwd={}".format(cwd)
 		command = "/home/grader/minigrade/dockerscript.sh {} {} test_file{} output_file{}".format(cwd, cwd, counter, counter)
-		#print "command={}".format(command)
-		#result = subprocess.Popen(command, shell = True, stderr = subprocess.STDOUT)
+		print "command={}".format(command)
+		result = subprocess.Popen(command, shell = True, stderr = subprocess.STDOUT)
 		returncode = subprocess.call(command, shell = True, stderr = subprocess.STDOUT)
 		r = open('output_file{}'.format(counter), 'r')
 		result = ''.join(r.readlines())
 		r.close()
-		print result
+		print "result={}".format(result)
+		print "done printing result"
+		print "{}: test {}".format(session['email'], counter)
 		yield "data: raw: {}\n\n".format(result)
                 if returncode and re.search(success, result):
                     results.write("Passed {}\n".format(test['name']))
