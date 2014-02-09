@@ -83,7 +83,7 @@
             <option value="PS4">Problem Set 4</option>
         </select>
         <input type="text" name="repo" onfocus="if(this.value == 'Git Repository URL') { this.value = ''; }" value="Git Repository URL"/>
-        <input type="button" onclick="grade(assignment.options[assignment.selectedIndex].value, repo.value)" style = "color: rgb(223, 173, 68)" value="Begin Grading"/>
+        <input id="starttest" type="button" onclick="grade(assignment.options[assignment.selectedIndex].value, repo.value)" style = "color: rgb(223, 173, 68)" value="Begin Grading"/>
         <form/>
         <div id="grade-results">
         </div>

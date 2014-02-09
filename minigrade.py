@@ -120,38 +120,29 @@ def grade_stream(assignment, repo):
                     raise StopIteration
             passed = 0
             failed = 0
+	    counter = 0
             for idnum, test in enumerate(tests):
-                success = re.compile(test['results'])
-                result = None
-                for command in test['cmd'].split(";"):
-                    yield "data: raw: {}\n\n".format(command)
-                    try:
-                        start = time.time()
-                        result = subprocess.Popen(command, shell = True, stderr = subprocess.STDOUT)
-                        time_limit = 1
-                        time_elapsed = 0.0
-                        return_code = 0
-                        while time_elapsed <= time_limit:
-                            if result.poll() != None:
-                                return_code = result.poll()
-                                break
-                            time.sleep(0.1)
-                            time_elapsed += 0.1
-
-                        if time_elapsed > time_limit:
-                            result.kill()
-                    except:
-                        print "Error running test: {}.".format(test['name'])
-                        results.write("Error running test {}\n".format(test['name']))
-
-                    if result:
-                        for line in result.split('\n'):
-                            yield "data: raw: {}\n\n".format(line)
-                    else: 
-                        results.write("Error running test {}\n".format(command))
-                        yield "data: raw: Error running {}\n\n".format(command)
-
-                if result and re.search(success, result):
+		counter += 1
+                yield "data: raw: {}\n\n".format(test["cmd"])
+		success = re.compile(test['results'])
+		f = open("test_file{}".format(counter), 'w')
+		temp=""
+		for token in test['cmd'].split(';'):
+			temp = temp + './gash -c "{}"\n'.format(token)
+		f.write(temp.rstrip())
+		f.close()
+		cwd = os.getcwd()
+		#print "cwd={}".format(cwd)
+		command = "/home/grader/minigrade/dockerscript.sh {} {} test_file{} output_file{}".format(cwd, cwd, counter, counter)
+		#print "command={}".format(command)
+		#result = subprocess.Popen(command, shell = True, stderr = subprocess.STDOUT)
+		returncode = subprocess.call(command, shell = True, stderr = subprocess.STDOUT)
+		r = open('output_file{}'.format(counter), 'r')
+		result = ''.join(r.readlines())
+		r.close()
+		print result
+		yield "data: raw: {}\n\n".format(result)
+                if returncode and re.search(success, result):
                     results.write("Passed {}\n".format(test['name']))
                     passed += 1
                     yield "data: tr: Pass {}\n\n".format(idnum + 1)
@@ -159,7 +150,6 @@ def grade_stream(assignment, repo):
                     results.write("Failed {}\n".format(test['name']))
                     failed += 1
                     yield "data: tr: Fail {}\n\n".format(idnum + 1)
-
             results.write("Total pass: {}\n".format(passed))
             results.write("Total fail: {}\n".format(failed))
     finally:
