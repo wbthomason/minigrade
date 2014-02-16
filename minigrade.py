@@ -7,13 +7,16 @@ import json
 import shutil
 import time
 import os
+import logging
 
+PORT_NUMBER = 9080
 minigrade = Flask(__name__)    
 # Put your own secret key here. You can't have mine!
 minigrade.secret_key = '!\xec\xa8\x88\xc9R\xf7i<wW\x9fzH\x81\xff\x11~aQn\x9f\xcf\x0b'
 urlmatch = re.compile('(?:git@|git://|https://)(?P<url>[\w@-]+\.[a-zA-Z]+[:/](?P<user>[a-zA-Z][a-zA-Z0-9-]+)/(?P<repo>.+))')
 
 def process_repo(repo):
+    logging.debug('Processing repo: ' + repo)
     result = urlmatch.match(repo)
     if not result:
         return None
@@ -22,6 +25,7 @@ def process_repo(repo):
     repository = result.group('repo')
     if repository[-4:] == ".git":
         repository = repository[:-4]
+    logging.debug('Returning: ' + str(repository))
     return (giturl, repository, result.group('user'))
 
 def sort_files_by_age(files):
@@ -61,6 +65,8 @@ def grade_stream(assignment, repo):
         yield "data: inv: Error: No valid test file for {}\n\n".format(assignment)
         raise StopIteration
     try:
+        yield "data inv: Grading {} from {}...\n".format(assignment, repo)
+        logging.debug("Grading " + assignment + " from: " + repo);
         os.chdir("results/{}".format(assignment))
         if not os.path.isdir(session['email']):
             os.mkdir(session['email'])
@@ -81,19 +87,30 @@ def grade_stream(assignment, repo):
                 yield "data: inv: {} is not a valid git repository.\n\n".format(repo)
                 raise StopIteration
 
+            logging.debug("Processed repo...");
+
             repo_url, repo_name, repo_user = result
             if os.path.isdir(repo_name):
                 shutil.rmtree(repo_name)
             try:
+                logging.debug("Cloning...")
+                yield "data inv: Cloning github repository...\n"
                 git = subprocess.check_output("git clone {}".format(repo_url).split(" "), stderr = subprocess.STDOUT)
+                logging.debug("Finished cloning...")
                 yield "data: raw: {}\n\n".format(git)
             except Exception as e:
+                logging.debug("{} is not a valid repository, because we got {}\n".format(repo,e))
                 results.write("{} is not a valid repository, because we got {}\n".format(repo,e))
                 yield "data: inv: Error: {} is not a valid repository, because we got {}\n\n".format(repo,e)
                 raise StopIteration
+            logging.debug("Using repo {}.\n".format(repo))
             results.write("Using repository {}.\n".format(repo))
             os.chdir(repo_name)
+            # copying files to testing dir...
+            #yield "setting up files..."
+            #shutil.copy("/home/grader/minigrade/tests/testfiles/abc.txt", "abc.txt")
             if build:
+                logging.debug("Building...")
                 success = re.compile(build['results'])
                 commands = build['cmd'].split(";")
                 for command in commands:
@@ -129,25 +146,42 @@ def grade_stream(assignment, repo):
 		temp=""
 		for token in test['cmd'].split(';'):
 			temp = temp + './gash -c "{}"\n'.format(token)
-		#print "temp={}".format(temp.rstrip())
+		print "{}: temp={}".format(counter, temp.rstrip())
 		f.write(temp.rstrip())
 		f.close()
 		cwd = os.getcwd()
-		#print "cwd={}".format(cwd)
+		print "cwd={}".format(cwd)
+		for dep in test['dep']:
+			print "dep={}".format(dep)
+			print "typeof(dep)={}".format(type(dep))
+			shutil.copy("/home/grader/minigrade/tests/testfiles/{}".format(dep), dep)
 		command = "/home/grader/minigrade/dockerscript.sh {} {} test_file{} output_file{}".format(cwd, cwd, counter, counter)
-		#print "command={}".format(command)		
+		print "{}: command={}".format(counter, command)
 		returncode = subprocess.call(command, shell = True, stderr = subprocess.STDOUT)
+		os.chdir(cwd)
 		result =""
-		r = open('output_file{}'.format(counter), 'r')
-		result = ''.join(r.readlines()).rstrip()
-		r.close()
-		#print "result from output_file{}={}".format(counter, result)
-		#print "done printing result"
+		try:
+			r = open('{}/output_file{}'.format(cwd,counter), 'r')
+			result = ''.join(r.readlines()).rstrip()
+			r.close()
+		except:
+			print "{}: couldn't open output_file{}".format(counter, counter)
+			result="null"
 		print "{}: test {}".format(session['email'], counter)
-		#print "returncode={}".format(returncode)
+		print "returncode={}".format(returncode)
+		# only print the first 10 lines to prevent spamming
+		m = 0
 		for line in result.split('\n'):
-		    yield "data: raw: {}\n\n".format(line)
-                if (returncode == 0) and re.search(success, result):
+		    if m < 10:
+		            print "result from output_file{}={}".format(counter, line)
+			    yield "data: raw: {}\n\n".format(line)
+		    else:
+			    break
+		    m += 1
+		print "{}: done printing result".format(counter)
+		if m >= 10:
+			yield "data: raw: ...\n\n"
+                if (returncode == 0) and re.match(success, result):
                     results.write("Passed {}\n".format(test['name']))
                     passed += 1
                     yield "data: tr: Pass {}\n\n".format(idnum + 1)
@@ -173,7 +207,10 @@ def index():
 def grade():
     assignment = request.args.get("assign", "NoneSuch")
     repo = request.args.get("repo", "NoneSuch")
-    return Response(stream_with_context(grade_stream(assignment, repo)), mimetype="text/event-stream")
+    logging.debug("Grading " + assignment + ": " + repo)
+    response = Response(stream_with_context(grade_stream(assignment, repo)), mimetype="text/event-stream")
+    logging.debug("Finished grading " + repo + ": " + str(response))
+    return response
 
 @minigrade.route('/auth/login', methods=['POST', 'GET'])
 def login():
@@ -184,7 +221,7 @@ def login():
         abort(400)
 
     # Send the assertion to Mozilla's verifier service.
-    data = {'assertion': request.form['assertion'], 'audience': 'http://128.143.136.170:9080'}
+    data = {'assertion': request.form['assertion'], 'audience': 'http://128.143.136.170:' + str(PORT_NUMBER)}
     resp = requests.post('https://verifier.login.persona.org/verify', data=data, verify=True)
 
     # Did the verifier respond?
@@ -196,8 +233,10 @@ def login():
         if verification_data['status'] == 'okay':
             # Log the user in by setting a secure session cookie
             session.update({'email': verification_data['email']})
+            logging.debug('Login as: ' + verification_data['email'])
             return "Logged in as %s" % verification_data['email']
 
+    logging.debug('Login failure: ' + str(resp))
     # Oops, something failed. Abort.
     abort(500)
     
@@ -208,5 +247,5 @@ def logout():
     
 #Only run in chroot jail.
 if __name__ == '__main__':
-    minigrade.run(host='0.0.0.0', debug=False, threaded=True, port=9080)
+    minigrade.run(host='0.0.0.0', debug=False, threaded=True, port=PORT_NUMBER)
     #minigrade.run(debug=True, threaded=True, port=9080)
