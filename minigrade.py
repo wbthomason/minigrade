@@ -308,6 +308,7 @@ def leaderboard():
         return '\n'.join(sub_page.readlines())
 
 def update_top_runs(user, duration, response):
+    ''' Run this to update the top runs with an entry of user-duration-response time entry'''
     print(user, duration, response)
     q = query_db("SELECT * FROM topruns WHERE username=?", [user], one=True)
     print q
