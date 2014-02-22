@@ -1,0 +1,2 @@
+ls
+echo "ping mozilla.org" | ./gash
