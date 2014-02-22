@@ -84,11 +84,13 @@
         </select>
         <input type="text" name="repo" onfocus="if(this.value == 'Git Repository URL') { this.value = ''; }" value="Git Repository URL"/>
         <input id="starttest" type="button" onclick="grade(assignment.options[assignment.selectedIndex].value, repo.value)" style = "color: rgb(223, 173, 68)" value="Begin Grading"/>
-        <form/>
+        </form>
         <div id="grade-results">
         </div>
         <div id="past-results">
         </div>
+	<div id='leaderboard'>
+	</div>
     </section>
     <hr>
     <footer>
@@ -106,5 +108,12 @@
 <script src="http://rust-class.org/theme/js/bootstrap.min.js"></script>
 <script src="https://login.persona.org/include.js"></script>
 <script type="text/javascript" src="static/js/grade.js"></script>
+    <script type="text/javascript">
+	$(document).ready(function(){
+	    jQuery.get('http://127.0.0.1:9080/leaderboard.html', function(data) {
+		$('#leaderboard').append(data);
+	    });
+	});
+    </script>
 </body>
 </html>
