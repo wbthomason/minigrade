@@ -303,19 +303,18 @@ def query_db(query, args=(), one=False):
 import random
 @minigrade.route('/leaderboard.html')
 def leaderboard():
-    update_leaderboard(5)
     with open("leaderboard.html") as sub_page:
         return '\n'.join(sub_page.readlines())
 
 def update_top_runs(user, duration, response):
     ''' Run this to update the top runs with an entry of user-duration-response time entry'''
-    print(user, duration, response)
     q = query_db("SELECT * FROM topruns WHERE username=?", [user], one=True)
-    print q
     if q is None:
 	query_db("INSERT INTO topruns VALUES (?, ?, ?)", [user, str(duration), str(response)])
     else:
 	query_db("UPDATE topruns SET duration=?, response=? WHERE username=?", [str(duration), str(response), user])
+    # THIS LINE determines how many users are shown on the leaderboard.
+    update_leaderboard(5)
 
 def get_top_runs(num):
     ''' Returns the top num runs in a list of 3xnum elements:
@@ -333,10 +332,12 @@ def get_top_runs(num):
 
 def heuristic(run):
     '''returns a function of a weighing bewteen duration and response time'''
-    return float(run[1]) * float(run[2])
+    tot_duration = float(run[1])
+    avg_response = float(run[2])
+    return tot_duration * avg_response
 
 def update_leaderboard(num):
-    '''Updates the leaderboard for webpages to see'''
+    '''Updates the leaderboard with 'num' entries for webpages to see'''
     head = "<h2>Leaderboard</h2>"
     tbl_template=lambda x: '''
 <h3>%s</h3>
