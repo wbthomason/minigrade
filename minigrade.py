@@ -9,6 +9,9 @@ import time
 import os
 import sqlite3
 import logging
+import sys
+import commands
+import threading
 
 PORT_NUMBER = 9080
 minigrade = Flask(__name__)    
@@ -18,6 +21,8 @@ urlmatch = re.compile('(?:git@|git://|https://)(?P<url>[\w@-]+\.[a-zA-Z]+[:/](?P
 
 PORT_NUMBER = 9080
 SERVER_IP = 'http://128.143.136.170'
+
+benchmark_mutex = threading.Lock()
 
 def process_repo(repo):
     logging.debug('Processing repo: ' + repo)
@@ -46,11 +51,46 @@ def cap_logs():
         for f in filedata:
             os.remove(f)
 
+def parse_httperf_output(output_str):
+    dur = -1
+    avg_resp = -1
+    io = -1
+    err = -1
+    
+    for line in output_str.split('\n'):
+        # need test-duration(s), reply time(ms), Net I/O, errors
+        output_line = line.rstrip()
+        testduration = re.search(r'test-duration (\d+\.\d+) s', output_line)
+        replytime = re.search(r'Reply time \[ms\]: response (\d+\.\d+) .*', output_line)
+        netio = re.search(r'Net I/O: (\d+\.\d+) KB/s', output_line)
+        errorcount = re.search(r'Errors: total (\d+)', output_line)
+        if testduration:
+            #print "Test duration: %f s\n" % float(testduration.group(1))
+            dur = float(testduration.group(1))
+        elif replytime:
+            #print "Reply time: %f ms\n" % float(replytime.group(1))
+            avg_resp = float(replytime.group(1))
+        elif netio:
+            #print "Net I/O: %f MB\n" % float(netio.group(1)) * dur / 1024
+            io = float(netio.group(1)) * dur / 1024
+        elif errorcount:
+            #print "Error count: %d\n" % int(errorcount.group(1))
+            err = int(errorcount.group(1))
+    '''
+    print "Test duration: %f s" % dur
+    print "Reply time: %f ms" % avg_response
+    print "Net I/O: %f MB" % io
+    print "Error count: %d" % err
+    
+    print "END HTTPERF\n"
+    '''
+    return dur, avg_resp, io, err
 
 def grade_stream(assignment, repo):
     if 'email' not in session:
         yield "data: inv: Please log in before running the autograder.\n\n"
         raise StopIteration
+        #session['email'] = "wx4ed@virginia.edu"
     build = None
     tests = []
     repo_name = "NotADirectory"
@@ -79,123 +119,160 @@ def grade_stream(assignment, repo):
         cap_logs()
         result_files  = sort_files_by_age(os.listdir('.'))
         result_files.reverse()
+        # review the past results
         for f in result_files:
             yield "data: nextpast\n\n"
             with open(f) as result:
                 for line in result:
                     yield "data: past: {}\n\n".format(line)
-
-        with open(str(time.time())+".result", 'w') as results:
-            result = process_repo(repo)
-            if not result:
-                results.write("{} is not a valid git repository.\n".format(repo))
-                yield "data: inv: {} is not a valid git repository.\n\n".format(repo)
-                raise StopIteration
-
-            logging.debug("Processed repo...");
-
-            repo_url, repo_name, repo_user = result
-            if os.path.isdir(repo_name):
-                shutil.rmtree(repo_name)
-            try:
-                logging.debug("Cloning...")
-                yield "data inv: Cloning github repository...\n"
-                git = subprocess.check_output("git clone {}".format(repo_url).split(" "), stderr = subprocess.STDOUT)
-                logging.debug("Finished cloning...")
-                yield "data: raw: {}\n\n".format(git)
-            except Exception as e:
-                logging.debug("{} is not a valid repository, because we got {}\n".format(repo,e))
-                results.write("{} is not a valid repository, because we got {}\n".format(repo,e))
-                yield "data: inv: Error: {} is not a valid repository, because we got {}\n\n".format(repo,e)
-                raise StopIteration
-            logging.debug("Using repo {}.\n".format(repo))
-            results.write("Using repository {}.\n".format(repo))
-            os.chdir(repo_name)
-            # copying files to testing dir...
-            #yield "setting up files..."
-            #shutil.copy("/home/grader/minigrade/tests/testfiles/abc.txt", "abc.txt")
-            if build:
-                logging.debug("Building...")
-                success = re.compile(build['results'])
-                commands = build['cmd'].split(";")
-                for command in commands:
-                    yield "data: raw: {}\n\n".format(command)
-                    result = None
-                    try:
-                        result = subprocess.check_output(command, shell = True, stderr = subprocess.STDOUT)
-                    except:
-                        print "Error building"
-
-                    if result:
-                        for line in result.split('\n'):
-                            yield "data: raw: {}\n\n".format(line)
-                    else: 
-                        yield "data: raw: Error running {}\n\n".format(command)
-
-                if result and re.search(success, result):
-                    results.write("Build success\n")
-                    yield "data: tr: Pass 0\n\n"
+        # start cloning the repository
+        # just skip it in ps3
+        if assignment == "PS3":
+            # ps3 remote benchmark
+            httperf_req_list_file_path = os.path.join(cwd, "tests/zhtta-test-NUL.txt")
+            cmd = "httperf --server %s --port 4414 --rate 10 --num-conns 60 --wlog=y,%s" % (repo, httperf_req_list_file_path) # actually IP address
+            
+            yield "data: raw: Queuing for benchmark, please wait...\n\n"
+            benchmark_mutex.acquire()
+            logging.debug("Benchmark starts, please wait...");
+            yield "data: raw: Benchmark starts, please wait...\n\n"
+            import commands
+            ret_text = commands.getoutput(cmd)
+            benchmark_mutex.release()
+            
+            for line in ret_text.split('\n'):
+                yield "data: raw: {}\n\n".format(line)
+            (dur, avg_resp, io, err) = parse_httperf_output(ret_text)
+            
+            with open(str(time.time())+".result", 'w') as results:
+                results.write("Duration: %d s\n\n" % (dur))
+                results.write("Average Response Time: %d ms\n\n" % avg_resp)
+                results.write("IO: %dMB\n\n" % (io))
+                results.write("Errors: {}\n".format(err))
+                if dur != -1:
+                    yield "data: tr: %ds %d\n\n" % (dur, 1)
+                    yield "data: tr: %dms %d\n\n" % (avg_resp,2)
+                    yield "data: tr: %dMB %d\n\n" % (io, 3)
+                    yield "data: tr: %d %d\n\n" % (err, 4)
                 else:
-                    results.write("Build failed\n")
-                    yield "data: tr: Fail 0\n\n"
-                    yield "data: inv: Build failed!\n\n"
+                    for i in range(1,5):
+                        yield "data: tr: Fail i \n\n"
+                    
+            
+            #os.chdir(cwd)
+            #yield "data: done\n\n"
+        else:
+            with open(str(time.time())+".result", 'w') as results:
+                result = process_repo(repo)
+                if not result:
+                    results.write("{} is not a valid git repository.\n".format(repo))
+                    yield "data: inv: {} is not a valid git repository.\n\n".format(repo)
                     raise StopIteration
-            passed = 0
-            failed = 0
-	    counter = 0
-            for idnum, test in enumerate(tests):
-		counter += 1
-                yield "data: raw: {}\n\n".format(test["cmd"])
-		success = re.compile(test['results'])
-		f = open("test_file{}".format(counter), 'w')
-		temp=""
-		for token in test['cmd'].split(';'):
-			temp = temp + './gash -c "{}"\n'.format(token)
-		print "{}: temp={}".format(counter, temp.rstrip())
-		f.write(temp.rstrip())
-		f.close()
-		cwd = os.getcwd()
-		print "cwd={}".format(cwd)
-		for dep in test['dep']:
-			print "dep={}".format(dep)
-			print "typeof(dep)={}".format(type(dep))
-			shutil.copy("/home/grader/minigrade/tests/testfiles/{}".format(dep), dep)
-		command = "/home/grader/minigrade/dockerscript.sh {} {} test_file{} output_file{}".format(cwd, cwd, counter, counter)
-		print "{}: command={}".format(counter, command)
-		returncode = subprocess.call(command, shell = True, stderr = subprocess.STDOUT)
-		os.chdir(cwd)
-		result =""
-		try:
-			r = open('{}/output_file{}'.format(cwd,counter), 'r')
-			result = ''.join(r.readlines()).rstrip()
-			r.close()
-		except:
-			print "{}: couldn't open output_file{}".format(counter, counter)
-			result="null"
-		print "{}: test {}".format(session['email'], counter)
-		print "returncode={}".format(returncode)
-		# only print the first 10 lines to prevent spamming
-		m = 0
-		for line in result.split('\n'):
-		    if m < 10:
-		            print "result from output_file{}={}".format(counter, line)
-			    yield "data: raw: {}\n\n".format(line)
-		    else:
-			    break
-		    m += 1
-		print "{}: done printing result".format(counter)
-		if m >= 10:
-			yield "data: raw: ...\n\n"
-                if (returncode == 0) and re.match(success, result):
-                    results.write("Passed {}\n".format(test['name']))
-                    passed += 1
-                    yield "data: tr: Pass {}\n\n".format(idnum + 1)
-                else:
-                    results.write("Failed {}\n".format(test['name']))
-                    failed += 1
-                    yield "data: tr: Fail {}\n\n".format(idnum + 1)
-            results.write("Total pass: {}\n".format(passed))
-            results.write("Total fail: {}\n".format(failed))
+
+                logging.debug("Processed repo...");
+
+                repo_url, repo_name, repo_user = result
+                if os.path.isdir(repo_name):
+                    shutil.rmtree(repo_name)
+                try:
+                    logging.debug("Cloning...")
+                    yield "data inv: Cloning github repository...\n"
+                    git = subprocess.check_output("git clone {}".format(repo_url).split(" "), stderr = subprocess.STDOUT)
+                    logging.debug("Finished cloning...")
+                    yield "data: raw: {}\n\n".format(git)
+                except Exception as e:
+                    logging.debug("{} is not a valid repository, because we got {}\n".format(repo,e))
+                    results.write("{} is not a valid repository, because we got {}\n".format(repo,e))
+                    yield "data: inv: Error: {} is not a valid repository, because we got {}\n\n".format(repo,e)
+                    raise StopIteration
+                logging.debug("Using repo {}.\n".format(repo))
+                results.write("Using repository {}.\n".format(repo))
+                os.chdir(repo_name)
+                # copying files to testing dir...
+                #yield "setting up files..."
+                #shutil.copy("/home/grader/minigrade/tests/testfiles/abc.txt", "abc.txt")
+                if build:
+                    logging.debug("Building...")
+                    success = re.compile(build['results'])
+                    commands = build['cmd'].split(";")
+                    for command in commands:
+                        yield "data: raw: {}\n\n".format(command)
+                        result = None
+                        try:
+                            result = subprocess.check_output(command, shell = True, stderr = subprocess.STDOUT)
+                        except:
+                            print "Error building"
+
+                        if result:
+                            for line in result.split('\n'):
+                                yield "data: raw: {}\n\n".format(line)
+                        else: 
+                            yield "data: raw: Error running {}\n\n".format(command)
+
+                    if result and re.search(success, result):
+                        results.write("Build success\n")
+                        yield "data: tr: Pass 0\n\n"
+                    else:
+                        results.write("Build failed\n")
+                        yield "data: tr: Fail 0\n\n"
+                        yield "data: inv: Build failed!\n\n"
+                        raise StopIteration
+                passed = 0
+                failed = 0
+	        counter = 0
+                for idnum, test in enumerate(tests):
+		    counter += 1
+                    yield "data: raw: {}\n\n".format(test["cmd"])
+		    success = re.compile(test['results'])
+		    f = open("test_file{}".format(counter), 'w')
+		    temp=""
+		    for token in test['cmd'].split(';'):
+			    temp = temp + './gash -c "{}"\n'.format(token)
+		    print "{}: temp={}".format(counter, temp.rstrip())
+		    f.write(temp.rstrip())
+		    f.close()
+		    cwd = os.getcwd()
+		    print "cwd={}".format(cwd)
+		    for dep in test['dep']:
+			    print "dep={}".format(dep)
+			    print "typeof(dep)={}".format(type(dep))
+			    shutil.copy("/home/grader/minigrade/tests/testfiles/{}".format(dep), dep)
+		    command = "/home/grader/minigrade/dockerscript.sh {} {} test_file{} output_file{}".format(cwd, cwd, counter, counter)
+		    print "{}: command={}".format(counter, command)
+		    returncode = subprocess.call(command, shell = True, stderr = subprocess.STDOUT)
+		    os.chdir(cwd)
+		    result =""
+		    try:
+			    r = open('{}/output_file{}'.format(cwd,counter), 'r')
+			    result = ''.join(r.readlines()).rstrip()
+			    r.close()
+		    except:
+			    print "{}: couldn't open output_file{}".format(counter, counter)
+			    result="null"
+		    print "{}: test {}".format(session['email'], counter)
+		    print "returncode={}".format(returncode)
+		    # only print the first 10 lines to prevent spamming
+		    m = 0
+		    for line in result.split('\n'):
+		        if m < 10:
+		                print "result from output_file{}={}".format(counter, line)
+			        yield "data: raw: {}\n\n".format(line)
+		        else:
+			        break
+		        m += 1
+		    print "{}: done printing result".format(counter)
+		    if m >= 10:
+			    yield "data: raw: ...\n\n"
+                    if (returncode == 0) and re.match(success, result):
+                        results.write("Passed {}\n".format(test['name']))
+                        passed += 1
+                        yield "data: tr: Pass {}\n\n".format(idnum + 1)
+                    else:
+                        results.write("Failed {}\n".format(test['name']))
+                        failed += 1
+                        yield "data: tr: Fail {}\n\n".format(idnum + 1)
+                results.write("Total pass: {}\n".format(passed))
+                results.write("Total fail: {}\n".format(failed))
     finally:
         if os.path.isdir(repo_name):
             shutil.rmtree(repo_name)
