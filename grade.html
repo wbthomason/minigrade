@@ -58,6 +58,8 @@
                 <ul class="nav pull-right">
                     <li><a href="http://rust-class.org/archives.html"><i class="icon-th-list"></i>Archives</a></li>
                 </ul>
+                <li><a href="http://128.143.136.170:4414/leaderboard.html">PS3 Leaderboard</a></li>
+                <li><a href="http://128.143.136.170:4414/">Autograder</a></li>
             </ul>
         </div><!--/.nav-collapse -->
         <div class="container-fluid">
@@ -82,7 +84,7 @@
             <option value="PS3">Problem Set 3</option>
             <option value="PS4">Problem Set 4</option>
         </select>
-        <input type="text" name="repo" onfocus="if(this.value == 'Git Repository URL') { this.value = ''; }" value="Git Repository URL"/>
+        <input type="text" name="repo" onfocus="if(this.value == 'Submission URL') { this.value = ''; }" value="Submission URL"/>
         <input id="starttest" type="button" onclick="grade(assignment.options[assignment.selectedIndex].value, repo.value)" style = "color: rgb(223, 173, 68)" value="Begin Grading"/>
         </form>
         <div id="grade-results">
@@ -108,12 +110,5 @@
 <script src="http://rust-class.org/theme/js/bootstrap.min.js"></script>
 <script src="https://login.persona.org/include.js"></script>
 <script type="text/javascript" src="static/js/grade.js"></script>
-    <script type="text/javascript">
-	$(document).ready(function(){
-	    jQuery.get('http://128.143.136.170:9080/leaderboard.html', function(data) {
-		$('#leaderboard').append(data);
-	    });
-	});
-    </script>
 </body>
 </html>

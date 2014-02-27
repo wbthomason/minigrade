@@ -13,13 +13,13 @@ import sys
 import commands
 import threading
 
-PORT_NUMBER = 8000
-minigrade = Flask(__name__)    
+minigrade = Flask(__name__)   
+PORT_NUMBER = 8000 
 # Put your own secret key here. You can't have mine!
-minigrade.secret_key = '!\xec\xa8\x88\xc9R\xf7i<wW\x9fzH\x81\xff\x11~aQn\x9f\xcf\x0b'
+minigrade.secret_key = <KEY>
 urlmatch = re.compile('(?:git@|git://|https://)(?P<url>[\w@-]+\.[a-zA-Z]+[:/](?P<user>[a-zA-Z][a-zA-Z0-9-]+)/(?P<repo>.+))')
 SERVER_IP = 'localhost'#'128.143.136.170'
-
+logging.basicConfig(filename='grader.log',level=logging.DEBUG)
 benchmark_mutex = threading.Lock()
 
 def process_repo(repo):
@@ -85,7 +85,7 @@ def parse_httperf_output(output_str):
     return dur, avg_resp, io, err
 
 def grade_stream(assignment, repo):
-    time.sleep(20)
+    yield "retry: 300000\n"
     if 'email' not in session:
         yield "data: inv: Please log in before running the autograder.\n\n"
         raise StopIteration
@@ -109,7 +109,7 @@ def grade_stream(assignment, repo):
         yield "data: inv: Error: No valid test file for {}\n\n".format(assignment)
         raise StopIteration
     try:
-        yield "data inv: Grading {} from {}...\n".format(assignment, repo)
+        yield "data inv: Grading {} from {}...\n\n".format(assignment, repo)
         logging.debug("Grading " + assignment + " from: " + repo);
         os.chdir("results/{}".format(assignment))
         if not os.path.isdir(session['email']):
@@ -130,12 +130,13 @@ def grade_stream(assignment, repo):
             # ps3 remote benchmark
             httperf_req_list_file_path = os.path.join(cwd, "tests/zhtta-test-NUL.txt")
             cmd = "httperf --server %s --port 4414 --rate 10 --num-conns 60 --wlog=y,%s" % (repo, httperf_req_list_file_path) # actually IP address
-            
+            #cmd = "ping -c 2 %s" % repo
             yield "data: raw: Queuing for benchmark, please wait...\n\n"
             benchmark_mutex.acquire()
             logging.debug("Benchmark starts, please wait...");
             yield "data: raw: Benchmark starts, please wait...\n\n"
             import commands
+            yield "data: raw: {}\n\n".format(cmd)
             ret_text = commands.getoutput(cmd)
             benchmark_mutex.release()
             
@@ -148,14 +149,17 @@ def grade_stream(assignment, repo):
                 results.write("Average Response Time: %d ms\n\n" % avg_resp)
                 results.write("IO: %dMB\n\n" % (io))
                 results.write("Errors: {}\n".format(err))
-                if dur != -1:
-                    yield "data: tr: %ds %d\n\n" % (dur, 1)
-                    yield "data: tr: %dms %d\n\n" % (avg_resp,2)
-                    yield "data: tr: %dMB %d\n\n" % (io, 3)
-                    yield "data: tr: %d %d\n\n" % (err, 4)
+                if dur != 1 and io > 280 and err == 0:
+                    yield "data: tr: Pass %d %ds\n\n" % (0, dur)
+                    yield "data: tr: Pass %d %dms\n\n" % (1, avg_resp)
+                    yield "data: tr: Pass %d %dMB\n\n" % (2, io)
+                    yield "data: tr: Pass %d %d errors\n\n" % (3, err)
+                    update_top_runs(session['email'], str(dur), str(avg_resp))
                 else:
-                    for i in range(1,5):
-                        yield "data: tr: Fail i \n\n"
+                    yield "data: tr: Fail %d %ds\n\n" % (0, dur)
+                    yield "data: tr: Fail %d %dms\n\n" % (1, avg_resp)
+                    yield "data: tr: Fail %d %dMB\n\n" % (2, io)
+                    yield "data: tr: Fail %d %d errors\n\n" % (3, err)
                     
             
             #os.chdir(cwd)
@@ -175,7 +179,7 @@ def grade_stream(assignment, repo):
                     shutil.rmtree(repo_name)
                 try:
                     logging.debug("Cloning...")
-                    yield "data inv: Cloning github repository...\n"
+                    yield "data inv: Cloning github repository...\n\n"
                     git = subprocess.check_output("git clone {}".format(repo_url).split(" "), stderr = subprocess.STDOUT)
                     logging.debug("Finished cloning...")
                     yield "data: raw: {}\n\n".format(git)
@@ -276,8 +280,7 @@ def grade_stream(assignment, repo):
         if os.path.isdir(repo_name):
             shutil.rmtree(repo_name)
         os.chdir(cwd)
-
-    yield "data: done\n\n"
+        yield "data: done\n\n"
 
 @minigrade.route('/')
 def index():
@@ -326,23 +329,22 @@ def logout():
     session.pop('email', None)
     return redirect('/')
 
-
 # Server-side database methods
 ##########
 
-
+database_path = <PATH>
 @minigrade.teardown_appcontext
 def close_db(error):
     """Closes the database again at the end of the request."""
     if hasattr(g, 'sqlite_db'):
         g.sqlite_db.close()
         if error:
-            print("There was an error closing the database")
+            print("There was an error closing the database: {}".format(error))
 
 
 def connect_db():
     """Connects to the specific database."""
-    rv = sqlite3.connect('database.db')
+    rv = sqlite3.connect(database_path)
     rv.row_factory = sqlite3.Row
     return rv
 
@@ -358,9 +360,9 @@ def get_db():
 
 def init_db():
     """Creates the database tables."""
-    with app.app_context():
+    with minigrade.app_context():
         db = get_db()
-        with app.open_resource('schema.sql') as f:
+        with minigrade.open_resource('schema.sql') as f:
             db.cursor().executescript(f.read())
         db.commit()
 
@@ -372,14 +374,20 @@ def query_db(query, args=(), one=False):
     cur.close()
     get_db().commit()
     return (rv[0] if rv else None) if one else rv
+############
 
 # Leaderboard functions
 #################
-
+leaderboard_path = <PATH>
 import random
 @minigrade.route('/leaderboard.html')
 def leaderboard():
     with open("leaderboard.html") as sub_page:
+        return '\n'.join(sub_page.readlines())
+
+@minigrade.route('/leaders.data')
+def leaders():
+    with open("leaders.data") as sub_page:
         return '\n'.join(sub_page.readlines())
 
 def update_top_runs(user, duration, response):
@@ -435,11 +443,12 @@ def update_leaderboard(num):
 	for tup in data[i]:
 	    # should be (username, duration, response time)
 	    row += "<tr><td>{}</td><td>{}</td><td>{}</td></tr>".format(*tup)
-	fin += tmp%row
-    open("leaderboard.html", 'w').write(fin)
+	fin += tmp % row
+    open(leaderboard_path, 'w').write(fin)
     
 
 #Only run in chroot jail.
 if __name__ == '__main__':
+    print "running..."
     minigrade.run(host='0.0.0.0', debug=False, threaded=True, port=PORT_NUMBER)
     #minigrade.run(debug=True, threaded=True, port=9080)

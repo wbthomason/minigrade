@@ -76,7 +76,7 @@ function grade(assignment, repo) {
     $("#grade-results").append(elems);
     var source = new EventSource('/grade/?assign='+assignment+'&repo='+repo);
     var nampat = /tn: ([\S\s]+) ([\d]+)/;
-    var respat = /tr: (Pass|Fail) ([\d]+)/;
+    var respat = /tr: (Pass|Fail) ([\d]+) ([\S\s\d]*)/;
     var invpat = /inv: ([\S\s]+)/
     source.onmessage = function(event) { 
         var chunks = event.data.split(" ");
@@ -99,7 +99,7 @@ function grade(assignment, repo) {
          else if (chunks[0] == 'tr:') {
             var result = event.data.match(respat);
             if (result != null) {
-                $('#'+assignment+'-test-'+result[2]).children().eq(1).text(result[1]);
+                $('#'+assignment+'-test-'+result[2]).children().eq(1).text(result[1] + ': ' + result[3]);
                 if (result[1] == "Pass") {
                     successes += 1;
                 }
