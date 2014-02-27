@@ -10,14 +10,12 @@ import os
 import sqlite3
 import logging
 
-PORT_NUMBER = 9080
+PORT_NUMBER = 8000
 minigrade = Flask(__name__)    
 # Put your own secret key here. You can't have mine!
 minigrade.secret_key = '!\xec\xa8\x88\xc9R\xf7i<wW\x9fzH\x81\xff\x11~aQn\x9f\xcf\x0b'
 urlmatch = re.compile('(?:git@|git://|https://)(?P<url>[\w@-]+\.[a-zA-Z]+[:/](?P<user>[a-zA-Z][a-zA-Z0-9-]+)/(?P<repo>.+))')
-
-PORT_NUMBER = 9080
-SERVER_IP = 'http://128.143.136.170'
+SERVER_IP = 'localhost'#'128.143.136.170'
 
 def process_repo(repo):
     logging.debug('Processing repo: ' + repo)
@@ -48,6 +46,7 @@ def cap_logs():
 
 
 def grade_stream(assignment, repo):
+    time.sleep(20)
     if 'email' not in session:
         yield "data: inv: Please log in before running the autograder.\n\n"
         raise StopIteration
@@ -226,7 +225,7 @@ def login():
         abort(400)
 
     # Send the assertion to Mozilla's verifier service.
-    data = {'assertion': request.form['assertion'], 'audience': SERVER_IP + ':'+ str(PORT_NUMBER)}
+    data = {'assertion': request.form['assertion'], 'audience': 'http://' + SERVER_IP + ':'+ str(PORT_NUMBER)}
     resp = requests.post('https://verifier.login.persona.org/verify', data=data, verify=True)
 
     # Did the verifier respond?
