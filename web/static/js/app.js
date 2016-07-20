@@ -20,4 +20,4 @@ import "phoenix_html"
 
 // import socket from "./socket"
 const elmDiv = document.querySelector('#elm-container');
-const elmApp = Elm.Minigrade.embed(elmDiv);
+const elmApp = Elm.Main.embed(elmDiv);
