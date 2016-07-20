@@ -1,4 +1,0 @@
-test {'dep' : [], 'name': 'Duration', 'files': '',  'cmd': '', 'results': ''}
-test {'dep' : [], 'name': 'Average Response Time', 'files': '',  'cmd': '', 'results': ''}
-test {'dep' : [], 'name': 'IO', 'files': '',  'cmd': '', 'results': ''}
-test {'dep' : [], 'name': 'Errors count', 'files': '',  'cmd': '', 'results': ''}

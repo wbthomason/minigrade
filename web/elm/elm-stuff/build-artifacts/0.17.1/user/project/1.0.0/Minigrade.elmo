@@ -1,0 +1,3 @@
+var _user$project$Minigrade$main = {
+	main: _elm_lang$html$Html$text('Hello asdafrom Elm!')
+};
