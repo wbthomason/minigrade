@@ -52,6 +52,7 @@ defmodule Minigrade.Web do
       import Minigrade.Router.Helpers
       import Minigrade.ErrorHelpers
       import Minigrade.Gettext
+      import Minigrade.InputHelpers
     end
   end
 

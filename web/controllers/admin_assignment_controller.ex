@@ -38,6 +38,7 @@ defmodule Minigrade.Admin.AssignmentController do
   end
 
   def update(conn, %{"id" => id, "assignment" => assignment_params}) do
+    assignment_params = Map.put_new(assignment_params, "submission_files", nil)
     assignment = Repo.get!(Assignment, id)
     changeset = Assignment.changeset(assignment, assignment_params)
 

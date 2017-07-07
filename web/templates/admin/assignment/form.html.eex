@@ -18,6 +18,13 @@
   </div>
 
   <div class="form-group">
+    <%= label f, :submission_files, class: "control-label" %>
+    <%= array_input f, :submission_files %>
+    <%= array_add_button f, :submission_files %>
+    <%= error_tag f, :submission_files %>
+  </div>
+
+  <div class="form-group">
     <%= submit "Submit", class: "btn btn-primary" %>
   </div>
 <% end %>
