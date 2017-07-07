@@ -1,3 +1,26 @@
-<h1>Assignments</h1>
+<%= if length(@assignments) > 0 do %>
+  <h2>Listing assignments</h2>
 
-<p>This will eventually list the available assignments.</p>
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Description</th>
+        <th>Submission files</th>
+
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+  <%= for assignment <- @assignments do %>
+      <tr>
+        <td><%= assignment.name %></td>
+        <td><%= assignment.description %></td>
+        <td><%= assignment.submission_files %></td>
+      </tr>
+  <% end %>
+    </tbody>
+  </table>
+<% else %>
+  <h2>No assignments to display.</h2>
+<% end %>

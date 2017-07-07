@@ -1,0 +1,23 @@
+<h2>Show assignment</h2>
+
+<ul>
+
+  <li>
+    <strong>Name:</strong>
+    <%= @assignment.name %>
+  </li>
+
+  <li>
+    <strong>Description:</strong>
+    <%= @assignment.description %>
+  </li>
+
+  <li>
+    <strong>Submission files:</strong>
+    <%= @assignment.submission_files %>
+  </li>
+
+</ul>
+
+<%= link "Edit", to: assignment_path(@conn, :edit, @assignment) %>
+<%= link "Back", to: assignment_path(@conn, :index) %>

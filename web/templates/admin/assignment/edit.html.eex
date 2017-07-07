@@ -1,0 +1,6 @@
+<h2>Edit assignment</h2>
+
+<%= render "form.html", changeset: @changeset,
+                        action: assignment_path(@conn, :update, @assignment) %>
+
+<%= link "Back", to: assignment_path(@conn, :index) %>
