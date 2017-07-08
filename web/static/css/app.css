@@ -89,4 +89,27 @@ table td:first-child {
 
 .container {
   width: 100%;
+  padding-left: 0px;
+  padding-right: 0px;
+}
+
+.links > a {
+  padding-left: 15px;
+  padding-right: 15px;
+}
+
+.input_container {
+  clear: both;
+}
+
+.form-group {
+  clear: both;
+}
+
+.remove-form-field {
+  float: right;
+}
+
+.form-control {
+  display: inline-block;
 }
