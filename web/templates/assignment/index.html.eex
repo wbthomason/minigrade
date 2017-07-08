@@ -16,7 +16,7 @@
       <tr>
         <td><%= assignment.name %></td>
         <td><%= assignment.description %></td>
-        <td><%= assignment.submission_files %></td>
+        <td><%= if assignment.submission_files == nil, do: 'No files', else: Enum.join(assignment.submission_files, ", ") %></td>
       </tr>
   <% end %>
     </tbody>

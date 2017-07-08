@@ -14,7 +14,7 @@
 
   <li>
     <strong>Submission files:</strong>
-    <%= @assignment.submission_files %>
+    <%= if @assignment.submission_files == nil, do: 'No files', else: Enum.join(@assignment.submission_files, ", ") %>
   </li>
 
 </ul>

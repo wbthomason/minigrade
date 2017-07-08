@@ -15,7 +15,7 @@
     <tr>
       <td><%= assignment.name %></td>
       <td><%= assignment.description %></td>
-      <td><%= assignment.submission_files %></td>
+      <td><%= if assignment.submission_files == nil, do: 'No files', else: Enum.join(assignment.submission_files, ", ") %></td>
 
       <td class="text-right">
         <%= link "Show", to: admin_assignment_path(@conn, :show, assignment), class: "btn btn-default btn-xs" %>
