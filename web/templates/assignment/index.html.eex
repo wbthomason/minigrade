@@ -17,6 +17,9 @@
         <td><%= assignment.name %></td>
         <td><%= assignment.description %></td>
         <td><%= if assignment.submission_files == nil, do: 'No files', else: Enum.join(assignment.submission_files, ", ") %></td>
+        <td class="text-right">
+          <%= link "Show", to: assignment_path(@conn, :show, assignment), class: "btn btn-default btn-xs" %>
+        </td>
       </tr>
   <% end %>
     </tbody>

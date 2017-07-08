@@ -19,5 +19,4 @@
 
 </ul>
 
-<%= link "Edit", to: assignment_path(@conn, :edit, @assignment) %>
 <%= link "Back", to: assignment_path(@conn, :index) %>
