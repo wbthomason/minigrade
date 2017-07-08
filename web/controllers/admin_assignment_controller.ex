@@ -20,7 +20,7 @@ defmodule Minigrade.Admin.AssignmentController do
       {:ok, _assignment} ->
         conn
         |> put_flash(:info, "Assignment created successfully.")
-        |> redirect(to: assignment_path(conn, :index))
+        |> redirect(to: admin_assignment_path(conn, :index))
       {:error, changeset} ->
         render(conn, "new.html", changeset: changeset)
     end
@@ -46,7 +46,7 @@ defmodule Minigrade.Admin.AssignmentController do
       {:ok, assignment} ->
         conn
         |> put_flash(:info, "Assignment updated successfully.")
-        |> redirect(to: assignment_path(conn, :show, assignment))
+        |> redirect(to: admin_assignment_path(conn, :show, assignment))
       {:error, changeset} ->
         render(conn, "edit.html", assignment: assignment, changeset: changeset)
     end
@@ -61,6 +61,6 @@ defmodule Minigrade.Admin.AssignmentController do
 
     conn
     |> put_flash(:info, "Assignment deleted successfully.")
-    |> redirect(to: assignment_path(conn, :index))
+    |> redirect(to: admin_assignment_path(conn, :index))
   end
 end
