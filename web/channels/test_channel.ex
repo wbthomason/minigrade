@@ -1,7 +1,7 @@
 defmodule Minigrade.TestChannel do
   use Minigrade.Web, :channel
 
-  def join("test:*", payload, socket) do
+  def join("test:" <> test_id, payload, socket) do
     if authorized?(payload) do
       {:ok, socket}
     else
