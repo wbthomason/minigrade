@@ -2,7 +2,7 @@ defmodule Minigrade.UserSocket do
   use Phoenix.Socket
 
   ## Channels
-  # channel "room:*", Minigrade.RoomChannel
+  channel "test:*", Minigrade.TestChannel
 
   ## Transports
   transport :websocket, Phoenix.Transports.WebSocket
