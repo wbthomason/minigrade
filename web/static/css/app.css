@@ -113,3 +113,7 @@ table td:first-child {
 .form-control {
   display: inline-block;
 }
+
+.display-list {
+  list-style: none;
+}
