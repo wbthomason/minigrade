@@ -1,0 +1,6 @@
+<h2>New assignment</h2>
+
+<%= render "form.html", changeset: @changeset,
+                        action: admin_assignment_path(@conn, :create) %>
+
+<%= link "Back", to: admin_assignment_path(@conn, :index) %>

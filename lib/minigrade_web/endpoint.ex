@@ -1,7 +1,7 @@
-defmodule Minigrade.Endpoint do
+defmodule MinigradeWeb.Endpoint do
   use Phoenix.Endpoint, otp_app: :minigrade
 
-  socket "/socket", Minigrade.UserSocket
+  socket "/socket", MinigradeWeb.UserSocket
 
   # Serve at "/" the static files from "priv/static" directory.
   #
@@ -38,5 +38,5 @@ defmodule Minigrade.Endpoint do
     key: "_minigrade_key",
     signing_salt: "qeegHFT/"
 
-  plug Minigrade.Router
+  plug MinigradeWeb.Router
 end
